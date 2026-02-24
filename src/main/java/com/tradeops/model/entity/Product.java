@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "products")
-public class ProductEntity {
+public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @ToString.Include
@@ -42,6 +42,11 @@ public class ProductEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    private CategoryEntity category;
+    private Category category;
+
+    @Column(name = "inventory_items")
+    @OneToMany(mappedBy = "product")
+    @ToString.Exclude
+    private List<InventoryItem> inventoryItems;
 
 }

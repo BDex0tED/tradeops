@@ -1,9 +1,7 @@
 package com.tradeops.repo;
 
-import com.tradeops.model.entity.ProductEntity;
+import com.tradeops.model.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-
-public interface ProductRepo extends JpaRepository<ProductEntity, Long> {
+public interface ProductRepo extends JpaRepository<Product, Long> {
 }
