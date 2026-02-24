@@ -9,6 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
+@AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "categories")
