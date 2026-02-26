@@ -1,8 +1,12 @@
 package com.tradeops.model.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record CategoryRequest(
-       String name,
-       Long parentId,
-       String slug,
-       Integer sortOrder
+        @NotBlank(message = "Name is required")
+        String name,
+        Long parentId,
+        String slug,
+        Integer sortOrder
 ) {}

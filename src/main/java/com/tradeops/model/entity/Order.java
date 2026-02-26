@@ -2,8 +2,11 @@ package com.tradeops.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.mapstruct.ap.internal.conversion.BigDecimalToPrimitiveConversion;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -37,11 +40,14 @@ public class Order {
 
     @ToString.Include
     @Column(name = "totals")
-    private Integer totals = 0;
+    private BigDecimal totals;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_link_id")
     private CustomerLink customerLink;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderLine> orderLines;
 
     @PrePersist
     public void onCreation(){

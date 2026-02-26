@@ -20,7 +20,7 @@ public class CustomerLink {
 
     @Column(name = "customer_external_id")
     @ToString.Include
-    private Long customerExternalId;
+    private String customerExternalId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trader_id")
