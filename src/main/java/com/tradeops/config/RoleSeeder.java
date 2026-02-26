@@ -42,8 +42,9 @@ public class RoleSeeder implements CommandLineRunner {
   @Transactional
   public void run(String... args) throws Exception {
     List<String> roles = Arrays.asList(
-            "ROLE_ADMIN",
+            "ROLE_SUPER_ADMIN",
             "ROLE_MODERATOR",         // Company: trader management
+            "ROLE_DEVOPS_SYSADMIN",   // Company: devops/sysadmin
             "ROLE_CATALOG_MANAGER",   // Company: catalog ops
             "ROLE_WAREHOUSE_OPS",     // Company: inventory/operations
             "ROLE_DISPATCHER",        // Company: delivery dispatch
@@ -56,12 +57,12 @@ public class RoleSeeder implements CommandLineRunner {
       createRoleIfNotFound(roleName);
     }
 
-    Role adminRole = roleRepo.findByName("ROLE_ADMIN").orElseThrow(()->new ResourceNotFoundException("ROLE_ADMIN not found"));
+    Role adminRole = roleRepo.findByName("ROLE_SUPER_ADMIN").orElseThrow(()->new ResourceNotFoundException("ROLE_ADMIN not found"));
 
     userRepo.findByUsername(ADMIN_USERNAME).ifPresentOrElse(
             user -> {
               boolean hasAdminRole = user.getRoles().stream()
-                      .anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+                      .anyMatch(r -> "ROLE_SUPER_ADMIN".equals(r.getName()));
 
               if (!hasAdminRole) {
                 user.getRoles().add(adminRole);

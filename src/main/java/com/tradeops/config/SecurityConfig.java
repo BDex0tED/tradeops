@@ -42,25 +42,26 @@ public class SecurityConfig {
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
-        .requestMatchers(
-          "/api/v1/auth/login",
-          "/api/v1/auth/login/otp",
-          "/api/v1/auth/register-trader",
-          "/api/v1/auth/refresh",
-          "/api/v1/products",
-          "/ping",
-          "/swagger-ui/**",
-          "/v3/api-docs/**"
-        ).permitAll()
-              .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
+//        .requestMatchers(
+//          "/api/v1/auth/login",
+//          "/api/v1/auth/login/otp",
+//          "/api/v1/auth/register-trader",
+//          "/api/v1/auth/refresh",
+//          "/api/v1/products",
+//          "/ping",
+//          "/swagger-ui/**",
+//          "/v3/api-docs/**"
+//        ).permitAll()
+              .anyRequest().permitAll()
+//              .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
 
               //admin
-              .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+//              .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
               // Protected Customer endpoint
               // These require "ROLE_CUSTOMER" and a valid JWT
-              .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
-              .anyRequest().authenticated()
+//              .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
+//              .anyRequest().authenticated()
       )
       .authenticationProvider(authenticationProvider())
       .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

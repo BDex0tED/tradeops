@@ -1,0 +1,17 @@
+package com.tradeops.model.response;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public record ProductResponse(
+    Long id,
+    String sku,
+    String name,
+    String description,
+    BigDecimal basePrice,
+    boolean isActive,
+    List<String> images,
+    Long categoryId,
+    Integer availableQty
+
+) {}
