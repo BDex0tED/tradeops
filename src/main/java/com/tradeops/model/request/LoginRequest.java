@@ -1,6 +1,7 @@
 package com.tradeops.model.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record LoginRequest(
         @NotBlank(message = "Username is required")

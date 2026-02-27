@@ -28,7 +28,7 @@ public class JWTService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public String generateToken(Authentication authentication) {
+  public String generateToken(Authentication authentication, List<String> scopes) {
     String username = authentication.getName();
     List<String> roles = authentication.getAuthorities().stream()
       .map(GrantedAuthority::getAuthority)
@@ -38,12 +38,13 @@ public class JWTService {
     Date expiry = new Date(now.getTime() + SecurityConstants.JWT_EXPIRATION_TIME);
 
     return Jwts.builder()
-      .subject(username)
-      .claim("roles", roles)
-      .issuedAt(now)
-      .expiration(expiry)
-      .signWith(getKey())
-      .compact();
+            .subject(username)
+            .claim("roles", roles)
+            .claim("scopes", scopes) // Add this claim
+            .issuedAt(now)
+            .expiration(expiry)
+            .signWith(getKey())
+            .compact();
   }
 
   public String generateRefreshToken(Authentication authentication) {

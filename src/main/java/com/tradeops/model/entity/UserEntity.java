@@ -27,8 +27,6 @@ public class UserEntity {
     @Column(nullable = false)
     private String fullName;
 
-    private boolean isVerified;
-
     @Column(nullable = false, unique = true)
     private String username;
 
