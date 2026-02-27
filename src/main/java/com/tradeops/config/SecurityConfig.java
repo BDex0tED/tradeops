@@ -1,11 +1,9 @@
 package com.tradeops.config;
 
-import com.tradeops.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,86 +14,53 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
   private final JWTFilter jwtFilter;
-  private final CustomUserDetailsService customUserDetailsService;
-
-  public SecurityConfig(CustomUserDetailsService customUserDetailsService, JWTFilter jwtFilter) {
-    this.customUserDetailsService = customUserDetailsService;
-    this.jwtFilter = jwtFilter;
-  }
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-      .csrf(AbstractHttpConfigurer::disable)
-      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-      .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(auth -> auth
-//        .requestMatchers(
-//          "/api/v1/auth/login",
-//          "/api/v1/auth/login/otp",
-//          "/api/v1/auth/register-trader",
-//          "/api/v1/auth/refresh",
-//          "/api/v1/products",
-//          "/ping",
-//          "/swagger-ui/**",
-//          "/v3/api-docs/**"
-//        ).permitAll()
-              .anyRequest().permitAll()
-//              .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers("/api/v1/catalog/**").permitAll()
+                    .requestMatchers("/api/v1/storefront/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui/index.html", "/swagger-ui.html").permitAll()
 
-              //admin
-//              .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/v1/admin/catalog/**")
+                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER")
 
-              // Protected Customer endpoint
-              // These require "ROLE_CUSTOMER" and a valid JWT
-//              .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
-//              .anyRequest().authenticated()
-      )
-      .authenticationProvider(authenticationProvider())
-      .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                    .requestMatchers("/api/v1/admin/inventory/**")
+                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "WAREHOUSE_OPS", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER", "ROLE_WAREHOUSE_OPS")
+
+                    .requestMatchers("/api/v1/admin/orders/**")
+                    .hasAnyAuthority("SUPER_ADMIN", "WAREHOUSE_OPS", "DISPATCHER", "ROLE_SUPER_ADMIN", "ROLE_WAREHOUSE_OPS", "ROLE_DISPATCHER")
+
+                    .requestMatchers("/api/v1/trader/**")
+                    .hasAnyAuthority("TRADER_ADMIN", "TRADER_STAFF", "ROLE_TRADER_ADMIN", "ROLE_TRADER_STAFF")
+
+                    .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
   @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration cfg = new CorsConfiguration();
-    cfg.setAllowedOrigins(List.of("*"));
-    cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-    cfg.setExposedHeaders(List.of("Authorization"));
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", cfg);
-    return source;
-  }
-
-  @Bean
   public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder(12);
+    return new BCryptPasswordEncoder();
   }
 
   @Bean
-  public AuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
-    provider.setPasswordEncoder(passwordEncoder());
-    return provider;
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    return authenticationConfiguration.getAuthenticationManager();
   }
-
-  @Bean
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-    return config.getAuthenticationManager();
-  }
-
 }
