@@ -22,8 +22,6 @@ public class RbacTest {
     @Autowired
     private MockMvc mockMvc;
 
-
-
     @Test
     void accessAdminEndpoint_WithoutAuth_ReturnsForbidden() throws Exception {
         mockMvc.perform(post("/api/v1/admin/catalog/categories"))
