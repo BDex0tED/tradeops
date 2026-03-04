@@ -63,10 +63,11 @@ public class ReservationConcurrencyTest {
             executorService.execute(() -> {
                 try {
                     // Пытаемся забронировать 1 штуку
-                    inventoryService.reserveStock(productId, 1, 1L);
+                    inventoryService.reserveStock(productId, 1);
                     successfulReservations.incrementAndGet();
                 } catch (Exception e) {
-                    // Ожидаем, что 9 потоков упадут с ошибкой OptimisticLockException или InsufficientStockException
+                    // Ожидаем, что 9 потоков упадут с ошибкой OptimisticLockException или
+                    // InsufficientStockException
                     failedReservations.incrementAndGet();
                 } finally {
                     latch.countDown();

@@ -8,9 +8,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface InventoryService {
     Page<InventoryItem> getInventoryList(Pageable pageable);
-    InventoryItem adjustStock(Long productId, Integer newQtyOnHand, Long actorId);
-    void reserveStock(Long productId, Integer qtyToReserve, Long actorId);
-    void releaseStock(Long productId, Integer qtyToRelease, Long actorId);
 
+    InventoryItem adjustStock(Long productId, Integer newQtyOnHand);
+
+    InventoryItem reserveStock(Long productId, Integer qtyToReserve);
+
+    InventoryItem releaseStock(Long productId, Integer qtyToRelease);
+
+    void fulfillStock(Long productId, Integer qtyToFulfill);
 
 }

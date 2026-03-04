@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import com.tradeops.annotation.Auditable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepo.findById(lineReq.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + lineReq.productId()));
 
-            inventoryService.reserveStock(product.getId(), lineReq.quantity(), 1L);
+            inventoryService.reserveStock(product.getId(), lineReq.quantity());
 
             OrderLine orderLine = new OrderLine();
             orderLine.setOrder(order);
@@ -97,40 +98,36 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Order changeOrderStatus(@NotNull Long orderId,@NotNull OrderStatus newStatus, @NotNull Long actorId) {
-        Order order = orderRepo.findById(orderId).orElseThrow(()->new ResourceNotFoundException("Order not found"));
-        OrderStatus currentStatus = getOrderStatus(newStatus, order);
+    @Auditable(action = "ORDER_STATUS_CHANGED", entityType = "ORDER")
+    public Order changeOrderStatus(@NotNull Long orderId, @NotNull OrderStatus newStatus) {
+        Order order = orderRepo.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        getOrderStatus(newStatus, order);
 
         if (newStatus == OrderStatus.CANCELLED) {
             for (OrderLine line : order.getOrderLines()) {
-                inventoryService.releaseStock(line.getProduct().getId(), line.getQty(), actorId);
+                inventoryService.releaseStock(line.getProduct().getId(), line.getQty());
             }
         }
 
         order.setStatus(newStatus);
-        Order savedOrder = orderRepo.save(order);
-
-        // TODO: FR-038 - Здесь будет запись в AuditLog о смене статуса
-        log.info("Order {} status changed from {} to {} by actor {}", orderId, currentStatus, newStatus, actorId);
-
-        return savedOrder;
+        return orderRepo.save(order);
     }
 
     private static @NonNull OrderStatus getOrderStatus(OrderStatus newStatus, Order order) {
         OrderStatus currentStatus = order.getStatus();
 
-        if(currentStatus == OrderStatus.COMPLETED || currentStatus == OrderStatus.CANCELLED){
+        if (currentStatus == OrderStatus.COMPLETED || currentStatus == OrderStatus.CANCELLED) {
             throw new InvalidStatusTransitionException("Cannot change status of closed order");
         }
 
-        boolean isValidStatusTransition = switch(currentStatus){
+        boolean isValidStatusTransition = switch (currentStatus) {
             case NEW -> newStatus == OrderStatus.ASSIGNED || newStatus == OrderStatus.CANCELLED;
             case ASSIGNED -> newStatus == OrderStatus.ON_PROGRESS || newStatus == OrderStatus.CANCELLED;
             case ON_PROGRESS -> newStatus == OrderStatus.COMPLETED || newStatus == OrderStatus.CANCELLED;
             default -> false;
         };
 
-        if(!isValidStatusTransition){
+        if (!isValidStatusTransition) {
             throw new InvalidStatusTransitionException("Invalid transition from " + currentStatus + " to " + newStatus);
         }
         return currentStatus;

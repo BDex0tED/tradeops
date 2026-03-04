@@ -27,6 +27,6 @@ public class AdminInventoryController {
             @PathVariable Long productId,
             @RequestParam Integer qtyOnHand) {
 
-        return ResponseEntity.ok(inventoryService.adjustStock(productId, qtyOnHand, 1L));
+        return ResponseEntity.ok(inventoryService.adjustStock(productId, qtyOnHand));
     }
 }

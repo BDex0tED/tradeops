@@ -1,13 +1,11 @@
 package com.tradeops.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.InsufficientStockException;
 import com.tradeops.exceptions.ResourceNotFoundException;
-import com.tradeops.model.entity.ActorType;
-import com.tradeops.model.entity.AuditLog;
 import com.tradeops.model.entity.InventoryItem;
 import com.tradeops.model.entity.Product;
-import com.tradeops.repo.AuditLogRepo;
 import com.tradeops.repo.InventoryItemRepo;
 import com.tradeops.repo.ProductRepo;
 import com.tradeops.service.InventoryService;
@@ -25,7 +23,6 @@ public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryItemRepo inventoryItemRepo;
     private final ProductRepo productRepo;
-    private final AuditLogRepo auditLogRepo;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,7 +32,8 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InventoryItem adjustStock(Long productId, Integer newQtyOnHand, Long actorId) {
+    @Auditable(action = "INVENTORY_ADJUST", entityType = "INVENTORY_ITEM")
+    public InventoryItem adjustStock(Long productId, Integer newQtyOnHand) {
         if (newQtyOnHand < 0) {
             throw new IllegalArgumentException("Quantity on hand cannot be negative");
         }
@@ -52,21 +50,14 @@ public class InventoryServiceImpl implements InventoryService {
                     return newItem;
                 });
 
-        int oldQty = item.getQtyOnHand();
         item.setQtyOnHand(newQtyOnHand);
-
-        InventoryItem savedItem = inventoryItemRepo.save(item);
-
-        // FR-019 & FR-038: Запись в AuditLog
-        saveAuditLog(actorId, "INVENTORY_ADJUST", savedItem.getId(),
-                String.format("{\"old_qty_on_hand\": %d, \"new_qty_on_hand\": %d}", oldQty, newQtyOnHand));
-
-        return savedItem;
+        return inventoryItemRepo.save(item);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void reserveStock(Long productId, Integer qtyToReserve, Long actorId) {
+    @Auditable(action = "STOCK_RESERVED", entityType = "INVENTORY_ITEM")
+    public InventoryItem reserveStock(Long productId, Integer qtyToReserve) {
         InventoryItem item = inventoryItemRepo.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
 
@@ -75,38 +66,32 @@ public class InventoryServiceImpl implements InventoryService {
             throw new InsufficientStockException("Not enough stock for product ID: " + productId);
         }
 
-        int oldReserved = item.getQtyReserved();
-        item.setQtyReserved(oldReserved + qtyToReserve);
-        inventoryItemRepo.save(item);
-
-        // FR-038: AuditLog
-        saveAuditLog(actorId, "STOCK_RESERVED", item.getId(),
-                String.format("{\"reserved_added\": %d}", qtyToReserve));
+        item.setQtyReserved(item.getQtyReserved() + qtyToReserve);
+        return inventoryItemRepo.save(item);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void releaseStock(Long productId, Integer qtyToRelease, Long actorId) {
+    @Auditable(action = "STOCK_RELEASED", entityType = "INVENTORY_ITEM")
+    public InventoryItem releaseStock(Long productId, Integer qtyToRelease) {
         InventoryItem item = inventoryItemRepo.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
 
         int newReserved = Math.max(0, item.getQtyReserved() - qtyToRelease);
         item.setQtyReserved(newReserved);
-        inventoryItemRepo.save(item);
-
-        // FR-038: AuditLog
-        saveAuditLog(actorId, "STOCK_RELEASED", item.getId(),
-                String.format("{\"reserved_removed\": %d}", qtyToRelease));
+        return inventoryItemRepo.save(item);
     }
 
-    private void saveAuditLog(Long actorId, String action, Long entityId, String diffJson) {
-        AuditLog log = new AuditLog();
-        log.setActorType(ActorType.COMPANY); // Пока хардкодим, потом можно брать из SecurityContext
-        log.setActorId(actorId != null ? actorId : 1L); // ID админа или системы
-        log.setAction(action);
-        log.setEntityType("INVENTORY_ITEM");
-        log.setEntityId(entityId);
-        log.setDiffJson(diffJson);
-        auditLogRepo.save(log);
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @Auditable(action = "STOCK_FULFILLED", entityType = "INVENTORY_ITEM")
+    public void fulfillStock(Long productId, Integer qtyToFulfill) {
+        InventoryItem item = inventoryItemRepo.findByProductId(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
+
+        item.setQtyOnHand(item.getQtyOnHand() - qtyToFulfill);
+        item.setQtyReserved(item.getQtyReserved() - qtyToFulfill);
+
+        inventoryItemRepo.save(item);
     }
 }

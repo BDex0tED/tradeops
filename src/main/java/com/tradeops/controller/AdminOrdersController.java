@@ -30,8 +30,6 @@ public class AdminOrdersController {
             @PathVariable Long id,
             @RequestParam OrderStatus status) {
 
-        // В будущем тут будем доставать actorId из SecurityContext
-        Long adminId = 1L;
-        return ResponseEntity.ok(orderService.changeOrderStatus(id, status, adminId));
+        return ResponseEntity.ok(orderService.changeOrderStatus(id, status));
     }
 }
