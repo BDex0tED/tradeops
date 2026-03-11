@@ -1,7 +1,7 @@
 package com.tradeops.controller;
 
-import com.tradeops.model.entity.AuditLog;
-import com.tradeops.repo.AuditLogRepo;
+import com.tradeops.model.response.AuditLogResponse;
+import com.tradeops.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,12 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuditLogController {
 
-    private final AuditLogRepo auditLogRepo;
+    private final AuditLogService auditLogService;
 
     @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'DISPATCHER', 'ROLE_SUPER_ADMIN', 'ROLE_DISPATCHER')")
     @GetMapping
-    public ResponseEntity<Page<AuditLog>> getAuditLogs(
+    public ResponseEntity<Page<AuditLogResponse>> getAuditLogs(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(auditLogRepo.findAll(pageable));
+        return ResponseEntity.ok(auditLogService.getAuditLogs(pageable));
     }
 }

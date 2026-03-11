@@ -2,6 +2,8 @@ package com.tradeops.repo;
 
 import com.tradeops.model.entity.Category;
 import com.tradeops.model.entity.Trader;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,4 +16,6 @@ import java.util.List;
 public interface TraderRepo extends JpaRepository<Trader, Long> {
     @Query("SELECT c FROM Trader t JOIN t.allowedCategoryIds c WHERE t.id = :traderId")
     List<Long> findCategoryIdsById(@Param("traderId") Long traderId);
+
+    boolean existsByDomain(String domain);
 }

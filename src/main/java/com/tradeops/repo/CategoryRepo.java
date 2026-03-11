@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,6 +16,17 @@ import java.util.List;
 public interface CategoryRepo extends JpaRepository<Category, Long> {
     boolean existsByName(String name);
     Page<Category> findAll(Pageable pageable);
+
+    Page<Category> findAllByIdIn(List<Long> ids, Pageable pageable);
+
+    @Query("SELECT c FROM Category c WHERE c.id IN :ids "
+    + "AND (:parentId IS NULL OR c.parent.id = :parentId)"
+    + "AND (:query IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Category> findAllCategoriesFiltered(
+            @Param("ids") List<Long> ids,
+            @Param("parentId") Long parentId,
+            @Param("query") String query,
+            Pageable pageable);
 
     @EntityGraph(attributePaths = {"subcategories"})
     @Query("SELECT c FROM Category c WHERE c.parent IS NULL")

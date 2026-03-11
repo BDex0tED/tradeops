@@ -5,7 +5,7 @@ import com.tradeops.exceptions.TenantAccessDeniedException;
 import com.tradeops.model.entity.Category;
 import com.tradeops.model.entity.InventoryItem;
 import com.tradeops.model.entity.Product;
-import com.tradeops.model.request.ProductRequest;
+import com.tradeops.model.request.CreateProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import com.tradeops.repo.CategoryRepo;
 import com.tradeops.repo.ProductRepo;
@@ -30,7 +30,7 @@ public class ProductServiceImpl implements ProductService {
     // FR-013
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ProductResponse createProduct(ProductRequest request) {
+    public ProductResponse createProduct(CreateProductRequest request) {
         Category category = categoryRepo.findById(request.categoryId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Category with ID " + request.categoryId() + " not found"));

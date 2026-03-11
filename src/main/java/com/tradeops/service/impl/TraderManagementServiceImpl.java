@@ -3,11 +3,15 @@ package com.tradeops.service.impl;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.DuplicateResourceException;
 import com.tradeops.exceptions.ResourceNotFoundException;
+import com.tradeops.mapper.TraderMapper;
 import com.tradeops.model.entity.Trader;
 import com.tradeops.model.request.TraderRequests.CreateTraderRequest;
 import com.tradeops.model.request.TraderRequests.UpdateTraderRequest;
+import com.tradeops.model.response.TraderResponse;
 import com.tradeops.repo.TraderRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TraderManagementServiceImpl {
 
     private final TraderRepo traderRepo;
+    private final TraderMapper traderMapper;
 
     @Transactional
     @Auditable(action = "TRADER_CREATED", entityType = "TRADER")
-    public Trader createTrader(CreateTraderRequest request) {
-        if (traderRepo.findAll().stream().anyMatch(t -> t.getDomain().equals(request.domain()))) {
+    public TraderResponse createTrader(CreateTraderRequest request) {
+        if (traderRepo.existsByDomain(request.domain())) {
             throw new DuplicateResourceException("Domain already in use");
         }
 
@@ -31,36 +36,33 @@ public class TraderManagementServiceImpl {
         trader.setStatus(Trader.TraderStatus.PENDING);
         trader.setThemeConfigJson("{\"primaryColor\": \"#000000\", \"layout\": \"standard\"}");
 
-        return traderRepo.save(trader);
+        return traderMapper.toTraderResponse(traderRepo.save(trader));
     }
 
     @Transactional
     @Auditable(action = "TRADER_STATUS_CHANGED", entityType = "TRADER")
-    public Trader changeStatus(Long traderId, Trader.TraderStatus newStatus) {
+    public TraderResponse changeStatus(Long traderId, Trader.TraderStatus newStatus) {
         Trader trader = traderRepo.findById(traderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
         trader.setStatus(newStatus);
-        return traderRepo.save(trader);
+        return traderMapper.toTraderResponse(traderRepo.save(trader));
     }
 
     @Transactional
     @Auditable(action = "TRADER_UPDATED", entityType = "TRADER")
-    public Trader updateTrader(Long traderId, UpdateTraderRequest request) {
+    public TraderResponse updateTrader(Long traderId, UpdateTraderRequest request) {
         Trader trader = traderRepo.findById(traderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
 
-        if (request.legalName() != null)
-            trader.setLegalName(request.legalName());
-        if (request.displayName() != null)
-            trader.setDisplayName(request.displayName());
-        if (request.domain() != null)
-            trader.setDomain(request.domain());
+        if (request.legalName() != null) trader.setLegalName(request.legalName());
+        if (request.displayName() != null) trader.setDisplayName(request.displayName());
+        if (request.domain() != null) trader.setDomain(request.domain());
 
-        return traderRepo.save(trader);
+        return traderMapper.toTraderResponse(traderRepo.save(trader));
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<Trader> getAllTraders() {
-        return traderRepo.findAll();
+    public Page<TraderResponse> getAllTraders(Pageable pageable) {
+        return traderRepo.findAll(pageable).map(traderMapper::toTraderResponse);
     }
 }

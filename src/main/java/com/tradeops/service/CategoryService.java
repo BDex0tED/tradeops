@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryResponse createCategory(CategoryRequest categoryRequest);
-    List<CategoryResponse> getCategoriesByTraderId(Long traderId);
-    List<CategoryResponse> getCategoriesByTraderParentIdsAndQuery(Long traderId, Long parentId, String query);
+    Page<CategoryResponse> getCategoriesByTraderId(Long traderId, Pageable pageable);
+    Page<CategoryResponse> getCategoriesByTraderParentIdsAndQuery(Long traderId, Long parentId, String query, Pageable pageable);
 
     Page<CategoryResponse> getAllCategories(Pageable pageable);
 }

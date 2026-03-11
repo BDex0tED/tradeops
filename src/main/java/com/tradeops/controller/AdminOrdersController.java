@@ -1,10 +1,9 @@
 package com.tradeops.controller;
 
-import com.tradeops.model.entity.Order;
-import com.tradeops.model.entity.OrderStatus;
+import com.tradeops.model.request.ChangeOrderStatusRequest;
 import com.tradeops.model.response.OrderResponse;
-import com.tradeops.repo.OrderRepo;
 import com.tradeops.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +29,8 @@ public class AdminOrdersController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<OrderResponse> changeStatus(
             @PathVariable Long id,
-            @RequestParam OrderStatus status) {
+            @RequestBody @Valid ChangeOrderStatusRequest request) {
 
-        return ResponseEntity.ok(orderService.changeOrderStatus(id, status));
+        return ResponseEntity.ok(orderService.changeOrderStatus(id, request.status()));
     }
 }

@@ -3,7 +3,9 @@ package com.tradeops.service.impl;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.InvalidStatusTransitionException;
 import com.tradeops.exceptions.ResourceNotFoundException;
+import com.tradeops.mapper.DeliveryAssignmentMapper;
 import com.tradeops.model.entity.*;
+import com.tradeops.model.response.DeliveryAssignmentResponse;
 import com.tradeops.repo.CourierUserRepo;
 import com.tradeops.repo.DeliveryAssignmentRepo;
 import com.tradeops.repo.OrderRepo;
@@ -18,10 +20,11 @@ public class DispatcherServiceImpl {
     private final OrderRepo orderRepo;
     private final CourierUserRepo courierUserRepo;
     private final DeliveryAssignmentRepo assignmentRepo;
+    private final DeliveryAssignmentMapper assignmentMapper;
 
     @Transactional
     @Auditable(action = "COURIER_ASSIGNED", entityType = "DELIVERY_ASSIGNMENT")
-    public DeliveryAssignment assignCourierToOrder(Long orderId, Long courierId) {
+    public DeliveryAssignmentResponse assignCourierToOrder(Long orderId, Long courierId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
@@ -40,6 +43,8 @@ public class DispatcherServiceImpl {
         assignment.setCourier(courier);
         assignment.setStatus(DeliveryStatus.ASSIGNED);
 
-        return assignmentRepo.save(assignment);
+        assignmentRepo.save(assignment);
+
+        return assignmentMapper.toDeliveryAssignmentResponse(assignment);
     }
 }

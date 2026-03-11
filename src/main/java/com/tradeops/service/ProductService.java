@@ -1,6 +1,6 @@
 package com.tradeops.service;
 
-import com.tradeops.model.request.ProductRequest;
+import com.tradeops.model.request.CreateProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 public interface ProductService {
 
     // FR-013: Создание товара (для AdminController)
-    ProductResponse createProduct(ProductRequest productRequest);
+    ProductResponse createProduct(CreateProductRequest productRequest);
 
     // FR-013: Активация/Деактивация товара (вместо физического Delete) (для
     // AdminController)

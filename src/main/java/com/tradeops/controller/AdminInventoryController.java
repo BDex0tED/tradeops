@@ -1,8 +1,10 @@
 package com.tradeops.controller;
 
 import com.tradeops.model.entity.InventoryItem;
+import com.tradeops.model.request.AdjustStockRequest;
 import com.tradeops.model.response.InventoryItemResponse;
 import com.tradeops.service.InventoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,8 +28,8 @@ public class AdminInventoryController {
     @PatchMapping("/products/{productId}")
     public ResponseEntity<InventoryItemResponse> adjustStock(
             @PathVariable Long productId,
-            @RequestParam Integer qtyOnHand) {
+            @Valid @RequestBody AdjustStockRequest request) {
 
-        return ResponseEntity.ok(inventoryService.adjustStock(productId, qtyOnHand));
+        return ResponseEntity.ok(inventoryService.adjustStock(productId, request.qtyOnHand()));
     }
 }

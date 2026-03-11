@@ -45,34 +45,29 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoriesByTraderId(Long traderId) {
+    public Page<CategoryResponse> getCategoriesByTraderId(Long traderId, Pageable pageable) {
         if(traderId == null){
             throw new IllegalArgumentException("Trader id cannot be null");
         }
 
-        return cm.toCategoryResponseList(getAllowedCategories(traderId));
+        Page<Category> allowedCategories = getAllowedCategories(traderId, pageable);
+        return allowedCategories.map(cm::toCategoryResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoriesByTraderParentIdsAndQuery(Long traderId, Long parentId, String query) {
+    public Page<CategoryResponse> getCategoriesByTraderParentIdsAndQuery(Long traderId, Long parentId, String query, Pageable pageable) {
         if(traderId == null){
             throw new IllegalArgumentException("Trader id cannot be null");
         }
 
-        List<Category> allowedCategories = getAllowedCategories(traderId);
-        List<Category> filteredList = allowedCategories.stream()
-                .filter(c -> {
-                    boolean matchesParent = (parentId == null) ||
-                            (c.getParent() != null && c.getParent().getId().equals(parentId));
+        List<Long> allowedCategoryIds = tr.findCategoryIdsById(traderId);
+        if(allowedCategoryIds == null || allowedCategoryIds.isEmpty()){
+            return Page.empty(pageable);
+        }
 
-                    boolean matchesQuery = (query == null || query.isBlank()) ||
-                            c.getName().toLowerCase().contains(query.toLowerCase());
-
-                    return matchesParent && matchesQuery;
-                })
-                .toList();
-        return cm.toCategoryResponseList(filteredList);
+        Page<Category> allowedCategories = categoryRepo.findAllCategoriesFiltered(allowedCategoryIds, parentId, query, pageable);
+        return allowedCategories.map(cm::toCategoryResponse);
     }
 
     @Override
@@ -87,7 +82,7 @@ public class CategoryServiceImpl implements CategoryService {
         return cr.name() != null && cr.slug() != null && cr.sortOrder() != null;
     }
 
-    private List<Category> getAllowedCategories(Long traderId){
-        return categoryRepo.findAllById(tr.findCategoryIdsById(traderId));
+    private Page<Category> getAllowedCategories(Long traderId, Pageable pageable){
+        return categoryRepo.findAllByIdIn(tr.findCategoryIdsById(traderId), pageable);
     }
 }
