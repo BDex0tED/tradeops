@@ -27,7 +27,7 @@ public class PublicProductController {
     // FR-015, FR-017
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getProducts(
-            @RequestBody ProductsRequest request,
+            @Valid ProductsRequest request,
             @PageableDefault(size = 20) Pageable pageable) {
 
         return ResponseEntity.ok()
@@ -39,7 +39,7 @@ public class PublicProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductDetail(
             @PathVariable Long id,
-            @RequestBody @Valid ProductDetailRequest request) {
+            @Valid ProductDetailRequest request) {
 
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES))

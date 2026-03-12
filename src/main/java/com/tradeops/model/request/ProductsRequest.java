@@ -9,9 +9,8 @@ public record ProductsRequest(
         @PositiveOrZero
         Long traderId,
         @PositiveOrZero
-        @NotNull(message = "CategoryId is required")
         Long categoryId,
-        @NotBlank(message = "Query is required")
+
         String query
 ) {
 }
