@@ -20,7 +20,7 @@ public class AuditLogController {
 
     private final AuditLogService auditLogService;
 
-    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'DISPATCHER', 'ROLE_SUPER_ADMIN', 'ROLE_DISPATCHER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN', 'ROLE_MODERATOR', 'ROLE_CATALOG_MANAGER', 'ROLE_WAREHOUSE_OPS', 'ROLE_DISPATCHER')")
     @GetMapping
     public ResponseEntity<Page<AuditLogResponse>> getAuditLogs(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
