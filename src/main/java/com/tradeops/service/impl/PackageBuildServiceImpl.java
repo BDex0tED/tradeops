@@ -32,7 +32,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
     private final TraderRepo traderRepo;
     private final PackageArtifactRepo packageArtifactRepo;
 
-    @Value("${tradeops.artifacts.dir:/opt/tradeops/artifacts}")
+    @Value("${tradeops.artifacts.dir:target/artifacts}")
     private String artifactsDir;
 
     @Value("${tradeops.main.api.baseUrl:https://api.tradeops.kg}")
@@ -63,15 +63,13 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             Path zipFilePath = Paths.get(artifactsDir, zipFileName);
 
             String envFileContent = generateEnvFile(trader);
-            String nginxConfigContent = generateNginxConfig(trader);
             String dockerComposeContent = generateDockerCompose(trader);
             String deployScriptContent = generateDeployScript();
 
             try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
-                 ZipOutputStream zos = new ZipOutputStream(fos)) {
+                    ZipOutputStream zos = new ZipOutputStream(fos)) {
 
                 addStringToZip(zos, ".env", envFileContent);
-                addStringToZip(zos, "nginx.conf", nginxConfigContent);
                 addStringToZip(zos, "docker-compose.yml", dockerComposeContent);
                 addStringToZip(zos, "deploy.sh", deployScriptContent);
             }
@@ -81,7 +79,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             packageArtifactRepo.save(artifact);
 
             log.info("Package Build completed successfully for Trader ID: {}. File: {}", traderId, zipFilePath);
-            return CompletableFuture.completedFuture(artifact.getId().toString());
+            return CompletableFuture.completedFuture("BUILD_SUCCESS");
 
         } catch (Exception e) {
             log.error("Failed to build package for Trader ID: {}", traderId, e);
@@ -99,50 +97,76 @@ public class PackageBuildServiceImpl implements PackageBuildService {
     }
 
     private String generateEnvFile(Trader trader) {
-        String apiKey = UUID.randomUUID().toString();
-        return "TRADER_ID=" + trader.getId() + "\n" +
-               "MAIN_API_BASE_URL=" + mainApiBaseUrl + "\n" +
-               "STOREFRONT_API_KEY=" + apiKey + "\n";
-    }
+        // Генерируем уникальные секретные ключи для сессий и JWT
+        String jwtSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        String shopJwtSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        String sessionSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
 
-    private String generateNginxConfig(Trader trader) {
-        return "server {\n" +
-               "    listen 80;\n" +
-               "    server_name " + trader.getDomain() + ";\n" +
-               "    root /usr/share/nginx/html;\n" +
-               "    index index.html;\n" +
-               "    \n" +
-               "    location / {\n" +
-               "        try_files $uri $uri/ /index.html;\n" +
-               "    }\n" +
-               "    \n" +
-               "    location /api/v1/ {\n" +
-               "        proxy_pass " + mainApiBaseUrl + ";\n" +
-               "        proxy_set_header Host $host;\n" +
-               "    }\n" +
-               "}\n";
+        return "SHOP_NAME=\"" + trader.getDisplayName() + "\"\n" +
+                "TRADER_ID=" + trader.getId() + "\n" +
+                "ADMIN_API_BASE_URL=" + mainApiBaseUrl + "\n" +
+                "DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data\n" +
+                "JWT_SECRET_KEY=" + jwtSecret + "\n" +
+                "SHOP_JWT_SECRET_KEY=" + shopJwtSecret + "\n" +
+                "SESSION_SECRET_KEY=" + sessionSecret + "\n";
     }
 
     private String generateDockerCompose(Trader trader) {
         return "version: '3.8'\n" +
-               "services:\n" +
-               "  storefront:\n" +
-               "    image: nginx:alpine\n" +
-               "    ports:\n" +
-               "      - \"80:80\"\n" +
-               "    volumes:\n" +
-               "      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro\n" +
-               "      - ./build:/usr/share/nginx/html:ro\n" +
-               "    env_file:\n" +
-               "      - .env\n" +
-               "    restart: unless-stopped\n";
+                "services:\n" +
+                "  postgres:\n" +
+                "    image: postgres:15-alpine\n" +
+                "    container_name: trader_" + trader.getId() + "_db\n" +
+                "    environment:\n" +
+                "      POSTGRES_DB: shop_data\n" +
+                "      POSTGRES_USER: postgres\n" +
+                "      POSTGRES_PASSWORD: postgres\n" +
+                "    volumes:\n" +
+                "      - postgres_data:/var/lib/postgresql/data\n" +
+                "    healthcheck:\n" +
+                "      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n" +
+                "      interval: 5s\n" +
+                "      timeout: 5s\n" +
+                "      retries: 5\n" +
+                "    restart: always\n\n" +
+                "  cms:\n" +
+                "    image: tradeops/trader-cms:latest # Укажите здесь реальный Docker-образ вашего CMS\n" +
+                "    container_name: trader_" + trader.getId() + "_cms\n" +
+                "    env_file: .env\n" +
+                "    ports:\n" +
+                "      - \"8000:8000\"\n" +
+                "    depends_on:\n" +
+                "      postgres:\n" +
+                "        condition: service_healthy\n" +
+                "    volumes:\n" +
+                "      - static_uploads:/app/static/uploads\n" +
+                "    restart: always\n\n" +
+                "  shop:\n" +
+                "    image: tradeops/trader-shop:latest # Укажите здесь реальный Docker-образ вашей Витрины\n" +
+                "    container_name: trader_" + trader.getId() + "_shop\n" +
+                "    env_file: .env\n" +
+                "    ports:\n" +
+                "      - \"8001:8001\"\n" +
+                "    depends_on:\n" +
+                "      postgres:\n" +
+                "        condition: service_healthy\n" +
+                "    restart: always\n\n" +
+                "volumes:\n" +
+                "  postgres_data:\n" +
+                "  static_uploads:\n";
     }
 
     private String generateDeployScript() {
         return "#!/bin/bash\n" +
-               "echo 'Deploying Trader Package...'\n" +
-               "docker-compose down\n" +
-               "docker-compose up -d\n" +
-               "echo 'Deployment Complete.'\n";
+                "echo 'Deploying Trader CMS & Shop...'\n" +
+                "docker-compose down\n" +
+                "docker-compose pull\n" +
+                "docker-compose up -d\n" +
+                "echo 'Deployment Complete!'\n" +
+                "echo 'CMS is running on port 8000'\n" +
+                "echo 'Shop is running on port 8001'\n";
     }
 }
