@@ -18,4 +18,6 @@ public interface TraderRepo extends JpaRepository<Trader, Long> {
     List<Long> findCategoryIdsById(@Param("traderId") Long traderId);
 
     boolean existsByDomain(String domain);
+
+    java.util.Optional<Trader> findByDomain(String domain);
 }
