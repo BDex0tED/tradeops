@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.tradeops.model.response.ErrorDetail;
 
 import java.util.*;
@@ -352,6 +353,16 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(buildError("endpoint_not_found", message, null));
+  }
+
+  /**
+   * Handles 404 - static resource not found
+   */
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+    String message = String.format("Resource not found: %s %s", ex.getHttpMethod(), ex.getResourcePath());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(buildError("resource_not_found", message, null));
   }
 
   /**

@@ -24,7 +24,9 @@ import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import org.springframework.core.io.ClassPathResource;
 
 @Slf4j
 @Service
@@ -48,6 +50,8 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            copyTemplateZipEntries(zos);
+
             // 1. Generate the .env file specific to this trader
             String envContent = generateEnvContent(trader);
             addStringToZip(zos, ".env", envContent);
@@ -114,6 +118,8 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
                     ZipOutputStream zos = new ZipOutputStream(fos)) {
 
+                copyTemplateZipEntries(zos);
+
                 addStringToZip(zos, ".env", envFileContent);
                 addStringToZip(zos, "docker-compose.yml", dockerComposeContent);
                 addStringToZip(zos, "deploy.sh", deployScriptContent);
@@ -131,6 +137,37 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             artifact.setBuildStatus(PackageArtifact.BuildStatus.FAILED);
             packageArtifactRepo.save(artifact);
             return CompletableFuture.completedFuture("FAILED");
+        }
+    }
+
+    private void copyTemplateZipEntries(ZipOutputStream zos) throws IOException {
+        ClassPathResource resource = new ClassPathResource("templates/trader-cms.zip");
+        if (!resource.exists()) {
+             log.warn("Template zip 'templates/trader-cms.zip' not found, creating archive only with generated files.");
+             return;
+        }
+        
+        try (ZipInputStream zis = new ZipInputStream(resource.getInputStream())) {
+            ZipEntry sourceEntry;
+            byte[] buffer = new byte[8192];
+            while ((sourceEntry = zis.getNextEntry()) != null) {
+                if (sourceEntry.getName().equals(".env") || 
+                    sourceEntry.getName().equals("docker-compose.yml") || 
+                    sourceEntry.getName().equals("deploy.sh")) {
+                    zis.closeEntry();
+                    continue;
+                }
+                
+                ZipEntry targetEntry = new ZipEntry(sourceEntry.getName());
+                zos.putNextEntry(targetEntry);
+                
+                int len;
+                while ((len = zis.read(buffer)) > 0) {
+                    zos.write(buffer, 0, len);
+                }
+                zos.closeEntry();
+                zis.closeEntry();
+            }
         }
     }
 
