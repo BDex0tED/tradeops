@@ -64,7 +64,6 @@ public class RoleSeeder implements CommandLineRunner {
               user.setActive(true);
               userRepo.save(user);
               System.out.println("✅ Super Admin created: " + ADMIN_USERNAME);
-
             }
     );
   }
