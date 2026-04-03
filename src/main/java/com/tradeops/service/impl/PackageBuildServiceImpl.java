@@ -61,9 +61,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             String envContent = generateEnvContent(trader);
             Files.writeString(tempDir.resolve(".env"), envContent);
 
-            // 2. Generate the docker-compose.yml to run the Python app
-            String dockerComposeContent = generateDockerCompose(trader);
-            Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
+
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             zipDirectory(tempDir, baos);
@@ -111,7 +109,6 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             Path zipFilePath = Paths.get(artifactsDir, zipFileName);
 
             String envFileContent = generateEnvFile(trader);
-            String dockerComposeContent = generateDockerCompose(trader);
             String deployScriptContent = generateDeployScript();
 
             Path tempDir = Files.createTempDirectory("trader-pkg-build-");
@@ -119,7 +116,6 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 cloneTemplateToTempDir(tempDir);
 
                 Files.writeString(tempDir.resolve(".env"), envFileContent);
-                Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
                 Files.writeString(tempDir.resolve("deploy.sh"), deployScriptContent);
 
                 try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile())) {
@@ -203,106 +199,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "SESSION_SECRET_KEY=" + sessionSecret + "\n";
     }
 
-    private String generateDockerCompose(Trader trader) {
-        return """
-# =============================================================================
-# SHOP TEMPLATE - Docker Compose Configuration
-# =============================================================================
-# Before running:
-# 1. Copy .env.example to .env
-# 2. Configure SHOP_NAME, TRADER_ID, and other settings
-# 3. Start main backend first: cd ../online_shop-backend && docker compose up -d
-# 4. Run: docker compose up --build
 
-services:
-  # PostgreSQL Database (local for shop data)
-  postgres:
-    image: postgres:15-alpine
-    container_name: ${SHOP_NAME:-shop}-db
-    environment:
-      POSTGRES_DB: shop_data
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # CMS (Admin Panel for Traders)
-  cms:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ${SHOP_NAME:-shop}-cms
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data
-      ADMIN_API_BASE_URL: ${ADMIN_API_BASE_URL:-http://shopbackend:8080}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-secret-key-in-production}
-      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-change-this-session-secret-in-production}
-      SHOP_NAME: ${SHOP_NAME:-My Shop}
-      TRADER_ID: ${TRADER_ID:-1}
-      JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      REFRESH_TOKEN_EXPIRE_DAYS: 7
-    ports:
-      - "${CMS_PORT:-8000}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - static_uploads:/app/static/uploads
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    networks:
-      - default
-      - backend
-
-  # Shop (Customer Storefront)
-  shop:
-    build:
-      context: ./shop
-      dockerfile: Dockerfile
-    container_name: ${SHOP_NAME:-shop}-storefront
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data
-      ADMIN_API_BASE_URL: ${ADMIN_API_BASE_URL:-http://shopbackend:8080}
-      JWT_SECRET_KEY: ${SHOP_JWT_SECRET_KEY:-change-this-shop-secret-key}
-      JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      REFRESH_TOKEN_EXPIRE_DAYS: 7
-      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-change-this-session-secret-key}
-      TRADER_ID: ${TRADER_ID:-1}
-      SHOP_NAME: ${SHOP_NAME:-My Shop}
-    ports:
-      - "${SHOP_PORT:-8001}:8001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      cms:
-        condition: service_started
-    volumes:
-      - ./shop:/app
-      - ./app:/trader-cms/app:ro
-    networks:
-      - default
-      - backend
-
-volumes:
-  postgres_data:
-  static_uploads:
-
-networks:
-  default:
-  backend:
-    external: true
-    name: online_shop-backend_default
-""";
-    }
 
     private String generateDeployScript() {
         return "#!/bin/bash\n" +
