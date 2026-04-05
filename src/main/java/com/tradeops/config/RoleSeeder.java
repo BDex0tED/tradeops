@@ -7,6 +7,7 @@ import com.tradeops.repo.RoleRepo;
 import com.tradeops.repo.UserEntityRepo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
+@DependsOn("flyway")
 public class RoleSeeder implements CommandLineRunner {
   private final PasswordEncoder passwordEncoder;
   private final UserEntityRepo userRepo;
