@@ -44,7 +44,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
     @Value("${tradeops.artifacts.dir:target/artifacts}")
     private String artifactsDir;
 
-    @Value("${tradeops.main.api.baseUrl:https://api.tradeops.kg}")
+    @Value("${tradeops.main.api.baseUrl:http://localhost:8080}")
     private String mainApiBaseUrl;
 
     @Override
@@ -60,8 +60,6 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             // 1. Generate the .env file specific to this trader
             String envContent = generateEnvContent(trader);
             Files.writeString(tempDir.resolve(".env"), envContent);
-
-
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             zipDirectory(tempDir, baos);
@@ -79,10 +77,10 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "TRADER_ID=" + trader.getId() + "\n" +
                 "BACKEND_URL=\"" + mainApiBaseUrl + "\"\n" +
                 "DATABASE_URL=\"sqlite:///./trader.db\"\n" +
-                "SECRET_KEY=\"" + UUID.randomUUID().toString() + "\"\n";
+                "SECRET_KEY=\"" + UUID.randomUUID().toString() + "\"\n" +
+                "TRADER_EMAIL=trader@example.com\n" +
+                "TRADER_PASSWORD=your-trader-password\n";
     }
-
-
 
     @Override
     @Async
@@ -144,18 +142,17 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         try {
             log.info("Cloning trader-cms repository into temporary directory...");
             ProcessBuilder pb = new ProcessBuilder(
-                    "git", "clone", "https://github.com/user31133/trader-cms.git", "."
-            );
+                    "git", "clone", "https://github.com/user31133/trader-cms.git", ".");
             pb.directory(tempDir.toFile());
             Process process = pb.start();
             int exitCode = process.waitFor();
-            
+
             if (exitCode != 0) {
                 log.error("Failed to clone repository. Exit code: {}", exitCode);
             } else {
                 log.info("Successfully cloned trader-cms repository.");
             }
-            
+
             // Clean up the .git directory so it doesn't get zipped
             FileSystemUtils.deleteRecursively(tempDir.resolve(".git"));
         } catch (IOException | InterruptedException e) {
@@ -166,8 +163,8 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
     private void zipDirectory(Path sourceDir, OutputStream os) throws IOException {
         try (ZipOutputStream zos = new ZipOutputStream(os);
-             Stream<Path> paths = Files.walk(sourceDir)) {
-             
+                Stream<Path> paths = Files.walk(sourceDir)) {
+
             paths.filter(path -> !Files.isDirectory(path)).forEach(path -> {
                 ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString().replace("\\", "/"));
                 try {
@@ -196,10 +193,10 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data\n" +
                 "JWT_SECRET_KEY=" + jwtSecret + "\n" +
                 "SHOP_JWT_SECRET_KEY=" + shopJwtSecret + "\n" +
-                "SESSION_SECRET_KEY=" + sessionSecret + "\n";
+                "SESSION_SECRET_KEY=" + sessionSecret + "\n" +
+                "TRADER_EMAIL=trader@example.com\n" +
+                "TRADER_PASSWORD=your-trader-password\n";
     }
-
-
 
     private String generateDeployScript() {
         return "#!/bin/bash\n" +
