@@ -73,13 +73,77 @@ public class PackageBuildServiceImpl implements PackageBuildService {
     }
 
     private String generateEnvContent(Trader trader) {
-        return "PROJECT_NAME=\"TradeOps Store - " + trader.getDisplayName() + "\"\n" +
-                "TRADER_ID=" + trader.getId() + "\n" +
-                "BACKEND_URL=\"" + mainApiBaseUrl + "\"\n" +
-                "DATABASE_URL=\"sqlite:///./trader.db\"\n" +
-                "SECRET_KEY=\"" + UUID.randomUUID().toString() + "\"\n" +
+        // Generate unique secret keys
+        String jwtSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        String shopJwtSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        String sessionSecret = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+
+        return "# =============================================================================\n" +
+                "# QUICK START (see README.md for full setup)\n" +
+                "# =============================================================================\n" +
+                "# 1. Start backend: cd ../online_shop-backend && docker compose up -d\n" +
+                "# 2. Register trader: POST /api/v1/auth/register-trader\n" +
+                "# 3. Verify OTP: POST /api/v1/auth/login/otp\n" +
+                "# 4. Wait for admin approval\n" +
+                "# 5. Copy: cp .env.example .env\n" +
+                "# 6. Edit: SHOP_NAME, TRADER_ID, TRADER_EMAIL, TRADER_PASSWORD, secrets\n" +
+                "# 7. Run: docker compose up --build\n" +
+                "# 8. Login CMS: http://localhost:8000 | Shop: http://localhost:8001\n" +
+                "# =============================================================================\n\n" +
+                "# =============================================================================\n" +
+                "# SHOP TEMPLATE CONFIGURATION\n" +
+                "# =============================================================================\n\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# SHOP IDENTITY (REQUIRED - Configure for your shop)\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# Unique shop name displayed in UI\n" +
+                "SHOP_NAME=\"" + trader.getDisplayName() + "\"\n\n" +
+                "# Your trader ID from the main backend system (Trader.id)\n" +
+                "TRADER_ID=" + trader.getId() + "\n\n" +
+                "# Trader login credentials (must match the account created in tradeops backend)\n" +
+                "# Used to seed the CMS database on first boot\n" +
                 "TRADER_EMAIL=trader@example.com\n" +
-                "TRADER_PASSWORD=your-trader-password\n";
+                "TRADER_PASSWORD=your-trader-password\n\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# BACKEND CONNECTION (REQUIRED)\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# URL to the main backend API\n" +
+                "# For Docker: use container name (e.g., http://shopbackend:8080)\n" +
+                "# For local development: use http://localhost:8080\n" +
+                "ADMIN_API_BASE_URL=" + mainApiBaseUrl + "\n\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# SECURITY KEYS (REQUIRED - CHANGE IN PRODUCTION!)\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# Generate secure random keys for production:\n" +
+                "# python -c \"import secrets; print(secrets.token_hex(32))\"\n\n" +
+                "# JWT secret for CMS authentication\n" +
+                "JWT_SECRET_KEY=" + jwtSecret + "\n\n" +
+                "# JWT secret for Shop customer authentication\n" +
+                "SHOP_JWT_SECRET_KEY=" + shopJwtSecret + "\n\n" +
+                "# Session secret for cookie encryption\n" +
+                "SESSION_SECRET_KEY=" + sessionSecret + "\n\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# DATABASE (Auto-configured by Docker)\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# Only change if using external database\n" +
+                "# DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/brokercms\n" +
+                "DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data\n\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# OPTIONAL SETTINGS\n" +
+                "# -----------------------------------------------------------------------------\n" +
+                "# JWT token expiration\n" +
+                "# JWT_ALGORITHM=HS256\n" +
+                "# ACCESS_TOKEN_EXPIRE_MINUTES=30\n" +
+                "# REFRESH_TOKEN_EXPIRE_DAYS=7\n\n" +
+                "# File uploads\n" +
+                "# MAX_IMAGE_SIZE_MB=5\n\n" +
+                "# Port overrides (change if defaults conflict with other services)\n" +
+                "# CMS_PORT=8000\n" +
+                "# SHOP_PORT=8001\n" +
+                "# DB_PORT=5432\n";
     }
 
     @Override
@@ -106,7 +170,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             String zipFileName = "trader_" + traderId + "_package_" + System.currentTimeMillis() + ".zip";
             Path zipFilePath = Paths.get(artifactsDir, zipFileName);
 
-            String envFileContent = generateEnvFile(trader);
+            String envFileContent = generateEnvContent(trader);
             String deployScriptContent = generateDeployScript();
 
             Path tempDir = Files.createTempDirectory("trader-pkg-build-");
@@ -178,25 +242,6 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         }
     }
 
-    private String generateEnvFile(Trader trader) {
-        // Генерируем уникальные секретные ключи для сессий и JWT
-        String jwtSecret = UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
-        String shopJwtSecret = UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
-        String sessionSecret = UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
-
-        return "SHOP_NAME=\"" + trader.getDisplayName() + "\"\n" +
-                "TRADER_ID=" + trader.getId() + "\n" +
-                "ADMIN_API_BASE_URL=" + mainApiBaseUrl + "\n" +
-                "DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data\n" +
-                "JWT_SECRET_KEY=" + jwtSecret + "\n" +
-                "SHOP_JWT_SECRET_KEY=" + shopJwtSecret + "\n" +
-                "SESSION_SECRET_KEY=" + sessionSecret + "\n" +
-                "TRADER_EMAIL=trader@example.com\n" +
-                "TRADER_PASSWORD=your-trader-password\n";
-    }
 
     private String generateDeployScript() {
         return "#!/bin/bash\n" +

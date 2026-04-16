@@ -66,8 +66,8 @@ public class PackageBuildTest {
                     foundEnv = true;
                     byte[] entryBytes = zis.readAllBytes();
                     String envContent = new String(entryBytes);
+                    Assertions.assertTrue(envContent.contains("SHOP_NAME=\"Test Store\""));
                     Assertions.assertTrue(envContent.contains("TRADER_ID=" + traderId));
-                    Assertions.assertTrue(envContent.contains("PROJECT_NAME=\"TradeOps Store - Test Store\""));
                     Assertions.assertTrue(envContent.contains("TRADER_EMAIL=trader@example.com"));
                     Assertions.assertTrue(envContent.contains("TRADER_PASSWORD=your-trader-password"));
                 } else if (entry.getName().equals("docker-compose.yml")) {
