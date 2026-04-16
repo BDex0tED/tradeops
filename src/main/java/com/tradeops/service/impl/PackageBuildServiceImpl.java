@@ -113,7 +113,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "# URL to the main backend API\n" +
                 "# For Docker: use container name (e.g., http://shopbackend:8080)\n" +
                 "# For local development: use http://localhost:8080\n" +
-                "ADMIN_API_BASE_URL=" + mainApiBaseUrl + "\n\n" +
+                "ADMIN_API_BASE_URL=http://localhost:8080\n\n" +
                 "# -----------------------------------------------------------------------------\n" +
                 "# SECURITY KEYS (REQUIRED - CHANGE IN PRODUCTION!)\n" +
                 "# -----------------------------------------------------------------------------\n" +
@@ -241,7 +241,6 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             });
         }
     }
-
 
     private String generateDeployScript() {
         return "#!/bin/bash\n" +
