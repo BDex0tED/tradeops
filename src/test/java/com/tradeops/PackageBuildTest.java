@@ -1,7 +1,10 @@
 package com.tradeops;
 
-import com.tradeops.model.entity.Trader;
+import com.tradeops.model.entity.TraderUser;
+import com.tradeops.model.entity.Role;
 import com.tradeops.repo.TraderRepo;
+import com.tradeops.repo.TraderUserRepo;
+import com.tradeops.repo.RoleRepo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +35,12 @@ public class PackageBuildTest {
     @Autowired
     private TraderRepo traderRepo;
 
+    @Autowired
+    private TraderUserRepo traderUserRepo;
+
+    @Autowired
+    private RoleRepo roleRepo;
+
     @Test
     @WithMockUser(username = "superadmin", authorities = "ROLE_SUPER_ADMIN")
     void testDownloadTraderPackage() throws Exception {
@@ -43,6 +52,19 @@ public class PackageBuildTest {
         trader.setStatus(Trader.TraderStatus.ACTIVE);
         trader = traderRepo.save(trader);
         Long traderId = trader.getId();
+
+        // 1.1 Create a trader user
+        Role role = new Role();
+        role.setName("ROLE_TRADER_ADMIN");
+        role = roleRepo.save(role);
+
+        TraderUser traderUser = new TraderUser();
+        traderUser.setTrader(trader);
+        traderUser.setRole(role);
+        traderUser.setName("Test User");
+        traderUser.setEmail("dynamic-trader@example.com");
+        traderUser.setPasswordHash("hashed_pass");
+        traderUserRepo.save(traderUser);
 
         // 2. Call the download endpoint
         MvcResult result = mockMvc.perform(post("/api/v1/superadmin/traders/" + traderId + "/package/build"))
@@ -68,7 +90,7 @@ public class PackageBuildTest {
                     String envContent = new String(entryBytes);
                     Assertions.assertTrue(envContent.contains("SHOP_NAME=\"Test Store\""));
                     Assertions.assertTrue(envContent.contains("TRADER_ID=" + traderId));
-                    Assertions.assertTrue(envContent.contains("TRADER_EMAIL=trader@example.com"));
+                    Assertions.assertTrue(envContent.contains("TRADER_EMAIL=dynamic-trader@example.com"));
                     Assertions.assertTrue(envContent.contains("TRADER_PASSWORD=your-trader-password"));
                 } else if (entry.getName().equals("docker-compose.yml")) {
                     foundCompose = true;

@@ -81,6 +81,13 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         String sessionSecret = UUID.randomUUID().toString().replace("-", "")
                 + UUID.randomUUID().toString().replace("-", "");
 
+        String traderEmail = "trader@example.com";
+        String traderPassword = "your-trader-password";
+        if (trader.getTraderUsers() != null && !trader.getTraderUsers().isEmpty()) {
+            traderEmail = trader.getTraderUsers().get(0).getEmail();
+            traderPassword = trader.getTraderUsers().get(0).getPasswordHash();
+        }
+
         return "# =============================================================================\n" +
                 "# QUICK START (see README.md for full setup)\n" +
                 "# =============================================================================\n" +
@@ -105,8 +112,8 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "TRADER_ID=" + trader.getId() + "\n\n" +
                 "# Trader login credentials (must match the account created in tradeops backend)\n" +
                 "# Used to seed the CMS database on first boot\n" +
-                "TRADER_EMAIL=trader@example.com\n" +
-                "TRADER_PASSWORD=your-trader-password\n\n" +
+                "TRADER_EMAIL=" + traderEmail + "\n" +
+                "TRADER_PASSWORD=" + traderPassword + "\n\n" +
                 "# -----------------------------------------------------------------------------\n" +
                 "# BACKEND CONNECTION (REQUIRED)\n" +
                 "# -----------------------------------------------------------------------------\n" +
