@@ -211,7 +211,25 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
     private void cloneTemplateToTempDir(Path tempDir) {
         try {
-            log.info("Cloning trader-cms repository into temporary directory...");
+            // Check for local template directory first
+            Path localTemplate = Paths.get("../trader-cms");
+            if (!Files.exists(localTemplate)) {
+                localTemplate = Paths.get("../../trader-cms");
+            }
+
+            if (Files.exists(localTemplate)) {
+                log.info("Using local trader-cms template from: {}", localTemplate.toAbsolutePath());
+                copyDirectory(localTemplate, tempDir);
+                
+                // Clean up .git if it was copied
+                Path gitDir = tempDir.resolve(".git");
+                if (Files.exists(gitDir)) {
+                    FileSystemUtils.deleteRecursively(gitDir);
+                }
+                return;
+            }
+
+            log.info("Local template not found, cloning from GitHub...");
             ProcessBuilder pb = new ProcessBuilder(
                     "git", "clone", "https://github.com/user31133/trader-cms.git", ".");
             pb.directory(tempDir.toFile());
@@ -220,15 +238,38 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
             if (exitCode != 0) {
                 log.error("Failed to clone repository. Exit code: {}", exitCode);
+                throw new IOException("Failed to clone template repository");
             } else {
                 log.info("Successfully cloned trader-cms repository.");
             }
 
-            // Clean up the .git directory so it doesn't get zipped
+            // Clean up the .git directory
             FileSystemUtils.deleteRecursively(tempDir.resolve(".git"));
         } catch (IOException | InterruptedException e) {
-            log.error("Exception occurred while cloning repository", e);
-            Thread.currentThread().interrupt();
+            log.error("Exception occurred while preparing template directory", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new RuntimeException("Failed to prepare template directory", e);
+        }
+    }
+
+    private void copyDirectory(Path source, Path target) throws IOException {
+        try (Stream<Path> paths = Files.walk(source)) {
+            paths.forEach(path -> {
+                Path destination = target.resolve(source.relativize(path));
+                try {
+                    if (Files.isDirectory(path)) {
+                        if (!Files.exists(destination)) {
+                            Files.createDirectories(destination);
+                        }
+                    } else {
+                        Files.copy(path, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to copy " + path + " to " + destination, e);
+                }
+            });
         }
     }
 
