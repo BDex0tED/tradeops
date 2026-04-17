@@ -113,7 +113,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "# Trader login credentials (must match the account created in tradeops backend)\n" +
                 "# Used to seed the CMS database on first boot\n" +
                 "TRADER_EMAIL=" + traderEmail + "\n" +
-                "TRADER_PASSWORD=" + traderPassword + "\n\n" +
+                "TRADER_PASSWORD_HASH=" + traderPassword + "\n\n" +
                 "# -----------------------------------------------------------------------------\n" +
                 "# BACKEND CONNECTION (REQUIRED)\n" +
                 "# -----------------------------------------------------------------------------\n" +
@@ -220,7 +220,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             if (Files.exists(localTemplate)) {
                 log.info("Using local trader-cms template from: {}", localTemplate.toAbsolutePath());
                 copyDirectory(localTemplate, tempDir);
-                
+
                 // Clean up .git if it was copied
                 Path gitDir = tempDir.resolve(".git");
                 if (Files.exists(gitDir)) {
