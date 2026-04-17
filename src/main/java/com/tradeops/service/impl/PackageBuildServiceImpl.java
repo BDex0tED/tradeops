@@ -85,7 +85,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         String traderPassword = "your-trader-password";
         if (trader.getTraderUsers() != null && !trader.getTraderUsers().isEmpty()) {
             traderEmail = trader.getTraderUsers().get(0).getEmail();
-            traderPassword = trader.getTraderUsers().get(0).getPasswordHash();
+            traderPassword = trader.getTraderUsers().get(0).getPasswordHash().replace("$", "$$");
         }
 
         return "# =============================================================================\n" +
