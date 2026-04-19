@@ -14,7 +14,7 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE " +
             "p.category.id IN :allowedCategoryIds " +
             "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
-            "AND (:query IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND (cast(:query as string) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', cast(:query as string), '%'))) " +
             "AND p.isActive = true")
     Page<Product> findStorefrontProducts(
             @Param("allowedCategoryIds") List<Long> allowedCategoryIds,

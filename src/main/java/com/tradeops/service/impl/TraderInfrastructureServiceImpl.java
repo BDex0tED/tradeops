@@ -13,10 +13,7 @@ import com.tradeops.model.request.TraderRequests.CreatePersonnelRequest;
 import com.tradeops.model.request.TraderRequests.ThemeConfigRequest;
 import com.tradeops.model.response.TraderResponse;
 import com.tradeops.model.response.TraderUserResponse;
-import com.tradeops.repo.RoleRepo;
-import com.tradeops.repo.TraderRepo;
-import com.tradeops.repo.TraderUserRepo;
-import com.tradeops.repo.UserEntityRepo;
+import com.tradeops.repo.*;
 import com.tradeops.service.PackageBuildService;
 import com.tradeops.util.AesEncryptionUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,6 +42,7 @@ public class TraderInfrastructureServiceImpl {
     private final TraderUserMapper traderUserMapper;
     private final AesEncryptionUtil aesEncryptionUtil;
     private final PackageBuildService packageBuildService;
+    private final CategoryRepo categoryRepo;
 
     @Transactional
     @Auditable(action = "THEME_UPDATED", entityType = "TRADER")
@@ -125,5 +124,23 @@ public class TraderInfrastructureServiceImpl {
     @Auditable(action = "FRONTEND_BUILD_TRIGGERED", entityType = "TRADER")
     public CompletableFuture<String> triggerFrontendBuild(Long traderId) {
         return packageBuildService.triggerBuild(traderId);
+    }
+
+    @Transactional
+    public void updateAllowedCategories(Long traderId, List<Long> categoryIds) {
+        Trader trader = traderRepo.findById(traderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
+
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            trader.setAllowedCategoryIds(new ArrayList<>());
+            traderRepo.save(trader);
+            return;
+        }
+
+        if(categoryRepo.countByIdIn(categoryIds) != categoryIds.size()){
+            throw new IllegalArgumentException("Some of the provided categoryIds do not exist");
+        }
+        trader.setAllowedCategoryIds(categoryIds);
+        traderRepo.save(trader);
     }
 }

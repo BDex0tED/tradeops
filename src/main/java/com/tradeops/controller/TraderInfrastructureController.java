@@ -101,4 +101,14 @@ public class TraderInfrastructureController {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
                 .body(resource);
     }
+
+    @PutMapping("/api/v1/trader/config/categories")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (hasRole('TRADER_ADMIN') and #traderId == authentication.principal.traderId)")
+    public ResponseEntity<Void> updateAllowedCategories(
+            @RequestParam Long traderId,
+            @RequestBody List<Long> categoryIds) {
+
+        infrastructureService.updateAllowedCategories(traderId, categoryIds);
+        return ResponseEntity.ok().build();
+    }
 }

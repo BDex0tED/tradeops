@@ -32,5 +32,6 @@ public interface CategoryRepo extends JpaRepository<Category, Long> {
     @Query("SELECT c FROM Category c WHERE c.parent IS NULL")
     Page<Category> findRootCategories(Pageable pageable);
 
+    long countByIdIn(List<Long> categoryIds);
 }
 
