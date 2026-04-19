@@ -102,8 +102,8 @@ public class TraderInfrastructureController {
                 .body(resource);
     }
 
-    @PutMapping("/api/v1/trader/config/categories")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or (hasRole('TRADER_ADMIN') and #traderId == authentication.principal.traderId)")
+    @PutMapping("/config/categories")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (hasRole('TRADER_ADMIN'))")
     public ResponseEntity<Void> updateAllowedCategories(
             @RequestParam Long traderId,
             @RequestBody List<Long> categoryIds) {
