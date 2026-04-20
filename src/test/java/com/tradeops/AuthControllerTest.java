@@ -32,7 +32,7 @@ public class AuthControllerTest {
     @Test
     void login_ValidCredentials_ReturnsTokens() throws Exception {
         LoginRequest request = new LoginRequest("user", "password123");
-        LoginResponse mockResponse = new LoginResponse("access-token-123", "refresh-token-123", null);
+        LoginResponse mockResponse = new LoginResponse("access-token-123", "refresh-token-123", null, null);
 
         Mockito.when(userService.login(Mockito.any(LoginRequest.class), Mockito.any()))
                 .thenReturn(mockResponse);

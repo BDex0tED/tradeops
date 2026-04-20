@@ -1,5 +1,6 @@
 package com.tradeops;
 
+import com.tradeops.model.entity.Trader;
 import com.tradeops.model.entity.TraderUser;
 import com.tradeops.model.entity.Role;
 import com.tradeops.repo.TraderRepo;

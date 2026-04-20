@@ -12,6 +12,36 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tradeops_shared
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  spring:
+    build: .
+    container_name: tradeops
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/tradeops_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+    depends_on:
+      db:
+       condition: service_healthy
+    networks:
+      - tradeops_shared
 
 volumes:
   postgres_data:
+
+networks:
+  tradeops_shared:
+    name: tradeops_network
+    driver: bridge
