@@ -28,7 +28,7 @@ public class JWTService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public String generateToken(Authentication authentication, List<String> scopes) {
+  public String generateToken(Authentication authentication, List<String> scopes, Long traderId) {
     String username = authentication.getName();
     List<String> roles = authentication.getAuthorities().stream()
         .map(GrantedAuthority::getAuthority)
@@ -40,7 +40,8 @@ public class JWTService {
     return Jwts.builder()
         .subject(username)
         .claim("roles", roles)
-        .claim("scopes", scopes) // Add this claim
+        .claim("scopes", scopes)
+            .claim("traderId", traderId)
         .issuedAt(now)
         .expiration(expiry)
         .signWith(getKey())
@@ -90,7 +91,7 @@ public class JWTService {
     return claimResolver.apply(claims);
   }
 
-  private Claims extractAllClaims(String token) {
+  public Claims extractAllClaims(String token) {
     return Jwts.parser()
         .verifyWith(getKey())
         .build()

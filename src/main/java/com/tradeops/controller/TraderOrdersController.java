@@ -21,7 +21,7 @@ public class TraderOrdersController {
 
     private final OrderService orderService;
 
-    // FR-024: Владелец магазина видит ТОЛЬКО свои заказы (Tenant isolation)
+    // FR-024:(Tenant isolation)
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getTraderOrders(
             @RequestBody @Valid OrdersRequest request,

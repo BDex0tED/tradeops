@@ -5,6 +5,7 @@ import com.tradeops.exceptions.ResourceNotFoundException;
 import com.tradeops.exceptions.UserAlreadyExistsException;
 import com.tradeops.exceptions.UserNotFoundException;
 import com.tradeops.model.entity.Role;
+import com.tradeops.model.entity.TraderUser;
 import com.tradeops.model.entity.UserEntity;
 import com.tradeops.model.entity.UserRolePermission;
 import com.tradeops.model.request.*;
@@ -17,6 +18,8 @@ import com.tradeops.model.response.JWTResponse;
 import com.tradeops.model.response.LoginResponse;
 import com.tradeops.model.response.RegistrationResponse;
 import com.tradeops.repo.RoleRepo;
+import com.tradeops.repo.TraderRepo;
+import com.tradeops.repo.TraderUserRepo;
 import com.tradeops.repo.UserEntityRepo;
 import com.tradeops.service.JWTService;
 import com.tradeops.service.CustomUserDetailsService;
@@ -48,6 +51,8 @@ public class UserServiceImpl implements UserService {
 
 
     private final UserEntityRepo userEntityRepo;
+    private final TraderUserRepo traderUserRepo;
+    private final TraderRepo traderRepo;
     private final RoleRepo roleRepo;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authManager;
@@ -94,19 +99,11 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userEntityRepo.findByUsername(request.username()).orElseThrow(()->new UserNotFoundException(request.username() + " not found"));
         List<String> scopes = new ArrayList<>(UserRolePermission.getScopesByRoleName(user.getRoles().getFirst().getName()));
 
-        boolean isTrader = user.getRoles().stream().anyMatch(r -> r.getName().startsWith("ROLE_TRADER_"));
-        if (isTrader && !user.isApproved()) {
-            throw new BadCredentialsException("Your account is pending approval by SUPER_ADMIN.");
-        }
-        if(isTrader && user.isApproved()){
-            return getLoginResponse(user, scopes);
-        }
+        Long traderId = extractTraderId(user);
 
         if (user.isActive()) {
-            return getLoginResponse(user, scopes);
+            return getLoginResponse(user, scopes, traderId);
         }
-
-        userEntityRepo.save(user);
 
         return new LoginResponse(
                 null,
@@ -114,12 +111,24 @@ public class UserServiceImpl implements UserService {
                 new User(
                         user.getId(),
                         user.getRoles().getFirst().getName(),
-                        scopes)
+                        scopes),
+                traderId
         );
     }
 
+    private Long extractTraderId(UserEntity user) {
+        boolean isTrader = user.getRoles().stream().anyMatch(r -> r.getName().startsWith("ROLE_TRADER_"));
+        if (isTrader && user.isApproved()) {
+            return traderUserRepo.findIdByEmail(user.getEmail()).orElseThrow(()->new ResourceNotFoundException("Trader not found"));
+        }
+        if(isTrader && !user.isApproved()){
+            throw new BadCredentialsException("Your account is pending approval by SUPER_ADMIN.");
+        }
+        return null;
+    }
+
     @NonNull
-    private LoginResponse getLoginResponse(UserEntity user, List<String> scopes) {
+    private LoginResponse getLoginResponse(UserEntity user, List<String> scopes, Long traderId) {
         Authentication auth =
                 new UsernamePasswordAuthenticationToken(
                         user.getUsername(),
@@ -129,7 +138,7 @@ public class UserServiceImpl implements UserService {
                                 .toList()
                 );
 
-        JWTResponse jwt = issueTokens(auth, scopes);
+        JWTResponse jwt = issueTokens(auth, scopes, traderId);
 
 
         return new LoginResponse(
@@ -137,7 +146,8 @@ public class UserServiceImpl implements UserService {
                 jwt.refreshToken(),
                 new User(user.getId(),
                         user.getRoles().getFirst().getName(),
-                        scopes)
+                        scopes),
+                traderId
         );
     }
 
@@ -172,12 +182,14 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userEntityRepo.findByUsername(username).orElseThrow(()->new UserNotFoundException(username + " not found"));
         List<String> scopes = new ArrayList<>(UserRolePermission.getScopesByRoleName(user.getRoles().getFirst().getName()));
 
+        Long traderId = extractTraderId(user);
+
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
         if (!jwtService.validateToken(incomingRefreshToken, userDetails)) {
             throw new BadCredentialsException("Invalid refresh token");
         }
 
-        return getLoginResponse(user, scopes);
+        return getLoginResponse(user, scopes, traderId);
     }
 
     @Override
@@ -194,8 +206,8 @@ public class UserServiceImpl implements UserService {
         return userEntityRepo.findByUsername(username).orElseThrow(()->new UserNotFoundException("User not found with username: " + username));
     }
 
-    private JWTResponse issueTokens(Authentication auth, List<String> scopes) {
-        String access = jwtService.generateToken(auth, scopes);
+    private JWTResponse issueTokens(Authentication auth, List<String> scopes, Long traderId) {
+        String access = jwtService.generateToken(auth, scopes, traderId);
         String refresh = jwtService.generateRefreshToken(auth);
 
         return new JWTResponse(access,refresh);

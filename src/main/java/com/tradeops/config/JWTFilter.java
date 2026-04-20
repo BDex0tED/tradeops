@@ -2,6 +2,7 @@ package com.tradeops.config;
 
 import com.tradeops.service.JWTService;
 import com.tradeops.service.CustomUserDetailsService;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -58,6 +59,14 @@ public class JWTFilter extends OncePerRequestFilter {
                 null,
                 userDetails.getAuthorities()
               );
+
+            Claims claims = jwtService.extractAllClaims(token);
+            Long traderId = claims.get("traderId", Long.class);
+
+            if(traderId != null){
+              request.setAttribute("X-Current-Trader-Id", traderId);
+            }
+
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
           }
