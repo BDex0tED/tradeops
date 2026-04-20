@@ -15,15 +15,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/storefront/orders")
 @RequiredArgsConstructor
 public class StoreFrontOrdersController {
-
-//    POST /api/v1/storefront/orders
-//    GET  /api/v1/trader/orders
-//    GET  /api/v1/admin/orders
-//    PATCH /api/v1/admin/orders/{id}/status
-//    POST /api/v1/admin/orders/{id}/assign
-//    POST /api/v1/admin/orders/{id}/unassign
-
-
     private final OrderService orderService;
 
     // FR-023: Создание заказа с витрины магазина

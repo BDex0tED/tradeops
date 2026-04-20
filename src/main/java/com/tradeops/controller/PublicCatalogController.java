@@ -24,7 +24,7 @@ public class PublicCatalogController {
     // FR-014, FR-017
     @GetMapping
     public ResponseEntity<Page<CategoryResponse>> getCategories(
-            @RequestBody @Valid CategoriesRequest request,
+            @Valid CategoriesRequest request,
             Pageable pageable) {
 
         return ResponseEntity.ok()

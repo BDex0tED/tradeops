@@ -14,5 +14,4 @@ public record CategoriesRequest(
         Long parentId,
         @NotBlank(message = "Query is required")
         String query
-) {
-}
+) {}

@@ -34,7 +34,7 @@ public class TraderInfrastructureController {
     private final com.tradeops.service.PackageBuildService packageBuildService;
 
     @PostMapping("/personnel")
-    @PreAuthorize("hasAnyAuthority('ROLE_TRADER_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN') or (hasRole('TRADER_ADMIN') and @tenantAuth.canAccess(#traderId)) ")
     public ResponseEntity<TraderUserResponse> addPersonnel(
             @PathVariable Long traderId,
             @Valid @RequestBody CreatePersonnelRequest request) {
@@ -42,7 +42,7 @@ public class TraderInfrastructureController {
     }
 
     @PatchMapping("/settings/theme")
-    @PreAuthorize("hasAnyAuthority('ROLE_TRADER_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN') or (hasRole('TRADER_ADMIN') and @tenantAuth.canAccess(#traderId)) ")
     public ResponseEntity<Void> updateTheme(
             @PathVariable Long traderId,
             @Valid @RequestBody ThemeConfigRequest request) {
@@ -69,7 +69,7 @@ public class TraderInfrastructureController {
     }
 
     @GetMapping("/package/download")
-    @PreAuthorize("hasAnyAuthority('ROLE_MODERATOR', 'ROLE_SUPER_ADMIN', 'ROLE_DEVOPS_SYSADMIN', 'ROLE_TRADER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_MODERATOR', 'ROLE_SUPER_ADMIN', 'ROLE_DEVOPS_SYSADMIN') or (hasAnyAuthority('ROLE_TRADER_ADMIN') and @tenantAuth.canAccess(#traderId))")
     public ResponseEntity<Resource> downloadLatestPackage(
             @PathVariable Long traderId) throws java.io.IOException {
         
@@ -103,9 +103,9 @@ public class TraderInfrastructureController {
     }
 
     @PutMapping("/config/categories")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or (hasRole('TRADER_ADMIN'))")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (hasRole('TRADER_ADMIN') && @tenantAuth.canAccess(#traderId))")
     public ResponseEntity<Void> updateAllowedCategories(
-            @RequestParam Long traderId,
+            @PathVariable Long traderId,
             @RequestBody List<Long> categoryIds) {
 
         infrastructureService.updateAllowedCategories(traderId, categoryIds);
